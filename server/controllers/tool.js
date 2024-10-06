@@ -1,7 +1,8 @@
-const { SerpAPILoader } = require("@langchain/community/document_loaders/web/serpapi");
-const { TavilySearchResults } = require("@langchain/community/tools/tavily_search");
+import { SerpAPILoader } from "@langchain/community/document_loaders/web/serpapi";
+import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 
 // const serpapiKey = process.env.SERPAPI_API_KEY;
 
@@ -23,6 +24,4 @@ let tools = [];
 const searchTool = new TavilySearchResults();
 tools.push(searchTool);
 
-module.exports = {
-    tools,
-}
+export default tools;

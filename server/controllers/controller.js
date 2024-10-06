@@ -1,17 +1,17 @@
-const { ChatGroq } = require("@langchain/groq");
-const { HumanMessage } = require("@langchain/core/messages");
-const { tools } = require('./tool.js');
-const { ChatPromptTemplate, PromptTemplate, MessagesPlaceholder } = require("@langchain/core/prompts");
-const { AgentExecutor, createReactAgent,  createOpenAIFunctionsAgent, ChatConversationalAgent } = require("langchain/agents");
-const { convertToOpenAIFunction } = require("@langchain/core/utils/function_calling");
-const { formatToOpenAIFunctionMessages } = require("langchain/agents/format_scratchpad");
-const { OpenAIFunctionsAgentOutputParser } = require("langchain/agents/openai/output_parser");
-const { RunnableSequence } = require("@langchain/core/runnables");
-const { pull } = require("langchain/hub");
-const prompttemplate = require("./promptTemplate.js") // contains the prompt template tpo guide the llm
-
-require('dotenv').config();
-
+// Import statements
+import { ChatGroq } from "@langchain/groq";
+import tools from './tool.js';
+import { ChatPromptTemplate, PromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import { AgentExecutor } from "langchain/agents";
+import { convertToOpenAIFunction } from "@langchain/core/utils/function_calling";
+import { formatToOpenAIFunctionMessages } from "langchain/agents/format_scratchpad";
+import { OpenAIFunctionsAgentOutputParser } from "langchain/agents/openai/output_parser";
+import { RunnableSequence } from "@langchain/core/runnables";
+import { Client } from "@gradio/client";
+import gTTS from 'gtts';
+import { prompttemplate, prompttemplateans } from "./promptTemplate.js"; // Imported the prompt template
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Methods to be executed on routes 
 const chatresponse = async (req, res) => {
@@ -76,15 +76,96 @@ const chatresponse = async (req, res) => {
         });
 
         console.log(result);
+
+    
         res.status(200).send(result.output);
+        text2speech(result.output);
 
     } catch (e) {
         console.error("Error during chatresponse execution: ", e);
         res.status(500).send("An error occurred.");
     }
 };
- 
+
+
+const test = async (req, res) => {
+    const client = await Client.connect("mrfakename/MeloTTS");
+    const result = await client.predict("/synthesize", { 		
+            text: "Hello!!", 		
+            speaker: "EN-US", 		
+            speed: 0.1, 		
+            language: "EN", 
+    });
+
+    console.log(result.data);
+};
+
+
+const text2speech = async (text) => {
+    let speech = text;
+    const  gtts = new gTTS(speech, 'en');
+    
+    gtts.save('Voice.mp3', function (err, result){
+        if(err) { throw new Error(err); }
+        console.log("Text to speech converted!");
+    });
+};
+
+const llm_answer = async (question, user_answer) => {
+    try {
+        const prompt = ChatPromptTemplate.fromMessages([
+            ["system", prompttemplateans],
+            ["human", "{input}"],
+            new MessagesPlaceholder("agent_scratchpad"),
+          ])
+
+        console.log(tools);
+        console.log(prompt);
+
+        const runnableAgent = RunnableSequence.from([
+            {
+              input: (i) => i.input,
+              agent_scratchpad: (i) =>
+                formatToOpenAIFunctionMessages(i.steps),
+            },
+            prompt,
+            modelWithFunctions,
+            new OpenAIFunctionsAgentOutputParser(),
+          ]);
+          
+          const executor = AgentExecutor.fromAgentAndTools({
+            agent: runnableAgent,
+            tools,
+          });
+
+          input = "question: " + question + " user_answer: " + user_answer;
+          const result = await agent.invoke({
+            input,
+          });
+
+        res.status(200).json({ response });
+    } catch (e) {
+        console.error("Error during llm_answer execution: ", e);
+        res.status(500).send("An error occurred.");
+    }
+};
+
+const evaluate_answer = async (req, res) => {
+    try {
+        const { question, user_answer } = req.body;
+
+        // Evaluate the answer
+        const is_correct = user_answer.trim().toLowerCase() === correct_answer.trim().toLowerCase();
+
+        res.status(200).json({ is_correct });
+    } catch (e) {
+        console.error("Error during evaluate_answer execution: ", e);
+        res.status(500).send("An error occurred.");
+    }
+};
 // Export of all methods as object 
-module.exports = {
+export {
     chatresponse,
+    test,
+    evaluate_answer,
 };

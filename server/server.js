@@ -1,6 +1,7 @@
-const express = require("express")
-const myRoute = require('./routes/routes.js'); 
-require('dotenv').config();
+import express from "express";
+import router from './routes/routes.js'; 
+import dotenv from 'dotenv';
+dotenv.config();
 
 const app = express()
 
@@ -12,6 +13,6 @@ app.listen(PORT, (error) =>{
     else
         console.log("Error occurred, server can't start", error)
 });
-
-app.use('/api', myRoute);
+console.log(router)
+app.use('/api', router);
 

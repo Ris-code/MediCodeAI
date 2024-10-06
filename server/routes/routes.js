@@ -1,13 +1,14 @@
 // Import Express
-const { Router } = require('express'); 
-  
+import { Router } from 'express'; 
 // Local Modules 
-const controller = require('../controllers/controller'); 
+import { chatresponse, test, evaluate_answer } from '../controllers/controller.js'; 
   
 // Initialization 
 const router = Router(); 
   
 // Requests  
-router.get('/', controller.chatresponse);
+router.get('/', chatresponse);
+router.get('/test', test);
+router.post('/evaluate', evaluate_answer);
   
-module.exports = router;
+export default router;
