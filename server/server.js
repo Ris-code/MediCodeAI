@@ -14,5 +14,6 @@ app.listen(PORT, (error) =>{
         console.log("Error occurred, server can't start", error)
 });
 console.log(router)
+app.use(express.json());
 app.use('/api', router);
 

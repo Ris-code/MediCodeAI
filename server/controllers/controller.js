@@ -40,8 +40,8 @@ const chatresponse = async (req, res) => {
                     new MessagesPlaceholder("agent_scratchpad"),
                   ])
 
-                console.log(tools);
-                console.log(prompt);
+                // console.log(tools);
+                // console.log(prompt);
 
                 const runnableAgent = RunnableSequence.from([
                     {
@@ -113,14 +113,31 @@ const text2speech = async (text) => {
 
 const llm_answer = async (question, user_answer) => {
     try {
+        const input = "question: " + question + " user_answer: " + user_answer;
+        // console.log(input)
+
+        const llm = new ChatGroq({
+            apiKey: process.env.GROQ_API_KEY, 
+        });
+
+        // Wait for tools to load before continuing
+        if (tools.length === 0) {
+            return res.status(500).send("Tools not loaded yet. Please try again later.");
+        }
+
+        // bind tools to the agent        
+        const modelWithFunctions = llm.bind({
+            functions: tools.map((tool) => convertToOpenAIFunction(tool)),
+        });
+
         const prompt = ChatPromptTemplate.fromMessages([
             ["system", prompttemplateans],
-            ["human", "{input}"],
+            ["human",  `question: ${question} user_answer: ${user_answer}`],
             new MessagesPlaceholder("agent_scratchpad"),
           ])
 
-        console.log(tools);
-        console.log(prompt);
+        // console.log(tools);
+        // console.log(prompt);
 
         const runnableAgent = RunnableSequence.from([
             {
@@ -138,12 +155,11 @@ const llm_answer = async (question, user_answer) => {
             tools,
           });
 
-          input = "question: " + question + " user_answer: " + user_answer;
-          const result = await agent.invoke({
+          const result = await executor.invoke({
             input,
           });
 
-        res.status(200).json({ response });
+          return result.output;
     } catch (e) {
         console.error("Error during llm_answer execution: ", e);
         res.status(500).send("An error occurred.");
@@ -152,12 +168,12 @@ const llm_answer = async (question, user_answer) => {
 
 const evaluate_answer = async (req, res) => {
     try {
+        // console.log("response", req.body);
         const { question, user_answer } = req.body;
+        const evaluation_metric = await llm_answer(question, user_answer);
 
         // Evaluate the answer
-        const is_correct = user_answer.trim().toLowerCase() === correct_answer.trim().toLowerCase();
-
-        res.status(200).json({ is_correct });
+        res.status(200).send(evaluation_metric);
     } catch (e) {
         console.error("Error during evaluate_answer execution: ", e);
         res.status(500).send("An error occurred.");
