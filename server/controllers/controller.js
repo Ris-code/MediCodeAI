@@ -16,6 +16,7 @@ dotenv.config();
 // Methods to be executed on routes 
 const chatresponse = async (req, res) => {
     try {
+        console.log(req.body)
         // define the large language model
         const llm = new ChatGroq({
             apiKey: process.env.GROQ_API_KEY, 

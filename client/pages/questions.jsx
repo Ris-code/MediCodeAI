@@ -7,11 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Send, Type } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import Form from '@/components/form';
 
 export default function MedicalQALayout() {
   const [inputMethod, setInputMethod] = useState('text');
   const [isRecording, setIsRecording] = useState(false);
   const [responseText, setResponseText] = useState('');
+  const [form, setForm] = useState(true);
 
   const handleRecordToggle = () => {
     setIsRecording(!isRecording);
@@ -35,7 +37,11 @@ export default function MedicalQALayout() {
     }
   ];
 
-  return (
+  return (form ? (
+    <div>
+        <Form status = {setForm}/>
+    </div> 
+    ): (
     <div className="h-screen flex bg-gray-950 text-gray-100">
       {/* Left Section */}
       <div className="w-1/2 p-6 flex flex-col">
@@ -183,5 +189,5 @@ export default function MedicalQALayout() {
         </div>
       </div>
     </div>
-  );
+  ));
 }
