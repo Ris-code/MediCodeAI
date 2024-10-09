@@ -17,6 +17,9 @@ dotenv.config();
 const chatresponse = async (req, res) => {
     try {
         console.log(req.body)
+        const topic = req.body.topic;
+        const message = req.body.message;
+        const difficulty = req.body.difficulty;
         // define the large language model
         const llm = new ChatGroq({
             apiKey: process.env.GROQ_API_KEY, 
@@ -69,7 +72,7 @@ const chatresponse = async (req, res) => {
         const agent = await agent_function();
 
         
-        const input = "what is anatomy?";
+        const input = `Topics: ${topic}, Concept: ${message}, Difficulty: ${difficulty}`;
         console.log(`Calling agent executor with query: ${input}`);
 
         const result = await agent.invoke({
@@ -77,9 +80,9 @@ const chatresponse = async (req, res) => {
         });
 
         console.log(result);
-
     
-        res.status(200).send(result.output);
+        // res.status(200).send(result.output);
+        res.json({result: result.output});
         text2speech(result.output);
 
     } catch (e) {

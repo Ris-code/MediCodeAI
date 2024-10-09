@@ -14,6 +14,7 @@ export default function MedicalQALayout() {
   const [isRecording, setIsRecording] = useState(false);
   const [responseText, setResponseText] = useState('');
   const [form, setForm] = useState(true);
+  const [result, setResult] = useState('');
 
   const handleRecordToggle = () => {
     setIsRecording(!isRecording);
@@ -38,8 +39,8 @@ export default function MedicalQALayout() {
   ];
 
   return (form ? (
-    <div>
-        <Form status = {setForm}/>
+    <div className='mt-10'>
+        <Form status = {setForm} output= {setResult}/>
     </div> 
     ): (
     <div className="h-screen flex bg-gray-950 text-gray-100">
@@ -139,18 +140,8 @@ export default function MedicalQALayout() {
                 <ScrollArea className="h-full">
                   <h3 className="font-semibold mb-2 text-white">Case Study Question:</h3>
                   <p className="text-sm text-gray-300">
-                    A 45-year-old male presents with severe chest pain radiating to the left arm, 
-                    shortness of breath, and profuse sweating for the last 2 hours. He has a history 
-                    of hypertension and type 2 diabetes. Vital signs show BP 160/100 mmHg, HR 110/min, 
-                    RR 24/min, and SpO2 94% on room air.
+                    {result.result}
                   </p>
-                  <p className="mt-4 font-semibold text-white">Please address the following:</p>
-                  <ol className="list-decimal ml-4 mt-2 text-sm text-gray-300">
-                    <li>What is your initial diagnosis?</li>
-                    <li>List three differential diagnoses</li>
-                    <li>What immediate steps would you take?</li>
-                    <li>What investigations would you order?</li>
-                  </ol>
                 </ScrollArea>
               </Card>
             </TabsContent>

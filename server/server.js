@@ -1,11 +1,18 @@
 import express from "express";
 import router from './routes/routes.js'; 
 import dotenv from 'dotenv';
+import cors from 'cors';
 dotenv.config();
 
 const app = express()
 
 const PORT = process.env.PORT;
+
+app.use(cors({
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],        // Specify allowed methods
+    credentials: true 
+}));
 
 app.listen(PORT, (error) =>{
     if(!error)
@@ -16,4 +23,3 @@ app.listen(PORT, (error) =>{
 console.log(router)
 app.use(express.json());
 app.use('/api', router);
-

@@ -7,7 +7,7 @@ import { chatresponse, test, evaluate_answer } from '../controllers/controller.j
 const router = Router(); 
   
 // Requests  
-router.post('/', chatresponse);
+router.post('/response', chatresponse);
 router.get('/test', test);
 router.post('/evaluate', evaluate_answer);
   

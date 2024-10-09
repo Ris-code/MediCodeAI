@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 // console.log(URL);
 
-const Form = ({status}) => {
+const Form = ({status, output}) => {
   const [formData, setFormData] = useState({
     topic: "",
     message: "",
@@ -26,23 +26,26 @@ const Form = ({status}) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    status(false);
     console.log("Form Data:", formData); 
 
     const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
 
     // const URL = process.env.URL;
-    const URL = "http://localhost:8080"
+    const URL = "http://localhost:8080/api/"
     console.log("URL:", URL);
-    const request1 = new Request(URL+"/", {
+    console.log("formData:", JSON.stringify(formData));
+    const request1 = new Request(URL+"response", {
         method: "POST",
         body: JSON.stringify(formData),
         headers: myHeaders,
     });
 
     const response1 = await fetch(request1);
-    console.log(response1);
+    const data = await response1.json();
+    output(data);
+    status(false);
+    console.log("Response:", data);
   };
 
   return (
