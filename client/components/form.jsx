@@ -93,15 +93,15 @@ const Form = ({status, output}) => {
           >
             <div className="flex items-center space-x-2 text-white">
               <RadioGroupItem value="easy" id="easy" className="text-white border-white" />
-              <Label htmlFor="easy" className="text-gray-200">Easy</Label>
+              <Label htmlFor="easy" className="text-gray-200">Beginner</Label>
             </div>
             <div className="flex items-center space-x-2 text-white">
               <RadioGroupItem value="medium" id="medium" className="text-white border-white" />
-              <Label htmlFor="medium">Medium</Label>
+              <Label htmlFor="medium">Intermediate</Label>
             </div>
             <div className="flex items-center space-x-2 text-white">
               <RadioGroupItem value="hard" id="hard" className="text-white border-white" />
-              <Label htmlFor="hard">Hard</Label>
+              <Label htmlFor="hard">Advanced</Label>
             </div>
           </RadioGroup>
         </div>

@@ -83,7 +83,7 @@ const chatresponse = async (req, res) => {
     
         // res.status(200).send(result.output);
         res.json({result: result.output});
-        text2speech(result.output);
+        // text2speech(result.output);
 
     } catch (e) {
         console.error("Error during chatresponse execution: ", e);
@@ -105,14 +105,16 @@ const test = async (req, res) => {
 };
 
 
-const text2speech = async (text) => {
-    let speech = text;
-    const  gtts = new gTTS(speech, 'en');
-    
-    gtts.save('Voice.mp3', function (err, result){
-        if(err) { throw new Error(err); }
-        console.log("Text to speech converted!");
-    });
+const text2speech = async (req, res) => {
+    const { text } = req.body;
+    const gtts = new gTTS(text, 'en');
+  
+    // Set appropriate headers for audio streaming
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Transfer-Encoding', 'chunked');
+  
+    // Pipe the audio stream directly to the response
+    gtts.stream().pipe(res);
 };
 
 const llm_answer = async (question, user_answer) => {
@@ -188,4 +190,5 @@ export {
     chatresponse,
     test,
     evaluate_answer,
+    text2speech,
 };

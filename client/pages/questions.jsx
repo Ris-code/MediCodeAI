@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Send, Type } from "lucide-react";
+import { Mic, MicOff, Send, Type, Play, Pause, RotateCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Toggle } from "@/components/ui/toggle";
 import Form from '@/components/form';
 
 export default function MedicalQALayout() {
@@ -15,34 +16,84 @@ export default function MedicalQALayout() {
   const [responseText, setResponseText] = useState('');
   const [form, setForm] = useState(true);
   const [result, setResult] = useState('');
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [color, setColor] = useState("gray");
+  const audioRef = useRef(null);
+  let t = ""
 
-  const handleRecordToggle = () => {
-    setIsRecording(!isRecording);
+  // Function to play or pause the audio
+  const handleAudioPlayPause = () => {
+    console.log(audioRef.current)
+    if (audioRef.current) {
+      if (isPlaying) {
+        console.log("pause")
+        setColor("blue");
+        audioRef.current.pause();
+      } else {
+        console.log("play")
+        audioRef.current.play().catch((error) => {
+          console.error("Error playing audio:", error);
+        });
+      }
+      setIsPlaying(!isPlaying);
+    }
   };
 
-  const navitems = [
-    {
-      "name": "Home",
-      "link": "/",
-      "icon": "HomeIcon"
-    },
-    {
-      "name": "About",
-      "link": "/about",
-      "icon": "UserIcon"
-    },
-    {
-      "name": "Problem",
-      "link": "/questions",
-      "icon": "MailIcon"
-    }
-  ];
+  // Function to check if audio is ready
+  const handleCanPlay = () => {
+    console.log("Audio is ready to play");
+  };
+
+  // Function to handle audio loading error
+  const handleAudioError = () => {
+    console.error("Error loading audio");
+  };
+
+  const VoiceAssistant = () => (
+    <div className="flex flex-col items-center justify-center h-full space-y-4">
+      <Avatar className="h-24 w-24">
+        <AvatarImage src="https://cdn.prod.website-files.com/6618a0ff31d39d3787770851/6618a0ff31d39d3787770db2_human-img2.png" alt="AI Assistant" />
+        {/* <AvatarFallback className="bg-gray-800 text-white">AI</AvatarFallback> */}
+      </Avatar>
+      
+
+      {/* if(color === "gray"){
+        t = "bg-gray-800 text-white"
+      }else if(color === "blue"){
+        t = "bg-blue-600 text-white"
+      } */}
+
+      <div className="flex space-x-4">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleAudioPlayPause}
+          className= "text-white"
+        >
+          {isPlaying ? <Pause className="h-8 w-8 bg-gray-800" /> : <Play className="h-8 w-8 bg-blue-600" />}
+        </Button>
+      </div>
+      
+      <p className="text-sm text-gray-300">
+        {isPlaying ? 'Pause the audio' : 'Play the audio'}
+      </p>
+
+      {/* Audio element */}
+      <audio 
+        ref={audioRef} 
+        src="/song.mp3" 
+        onCanPlay={handleCanPlay}
+        onError={handleAudioError}
+      />
+    </div>
+  );
 
   return (form ? (
-    <div className='mt-10'>
-        <Form status = {setForm} output= {setResult}/>
+    <div className='mt-20'>
+      <Form status={setForm} output={setResult}/>
     </div> 
-    ): (
+  ) : (
     <div className="h-screen flex bg-gray-950 text-gray-100">
       {/* Left Section */}
       <div className="w-1/2 p-6 flex flex-col">
@@ -83,7 +134,7 @@ export default function MedicalQALayout() {
               <Button 
                 size="lg" 
                 className={`rounded-full p-8 ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
-                onClick={handleRecordToggle}
+                onClick={() => setIsRecording(!isRecording)}
               >
                 {isRecording ? (
                   <MicOff className="h-8 w-8" />
@@ -118,35 +169,55 @@ export default function MedicalQALayout() {
 
       {/* Right Section */}
       <div className="w-1/2 flex flex-col">
-        {/* Upper Right with Tabs */}
-        <div className="h-1/2 p-6">
+        <div className="h-full p-6">
           <Tabs defaultValue="question" className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-800">
-              <TabsTrigger 
-                value="question"
-                className="data-[state=active]:bg-gray-300 text-white"
+            <div className="flex justify-between items-center mb-4">
+              <TabsList className="grid w-2/3 grid-cols-2 bg-gray-800">
+                <TabsTrigger 
+                  value="question"
+                  className="data-[state=active]:bg-gray-300 text-white"
+                >
+                  Question
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="evaluation"
+                  className="data-[state=active]:bg-gray-300 text-gray-200"
+                >
+                  Evaluation
+                </TabsTrigger>
+              </TabsList>
+              <Toggle
+                aria-label="Toggle voice assistant"
+                className="bg-gray-800"
+                pressed={voiceMode}
+                onPressedChange={setVoiceMode}
               >
-                Question
-              </TabsTrigger>
-              <TabsTrigger 
-                value="evaluation"
-                className="data-[state=active]:bg-gray-300 text-gray-200"
-              >
-                Evaluation
-              </TabsTrigger>
-            </TabsList>
+                <Mic className="h-4 w-4 mr-2" />
+                Voice Assistant
+              </Toggle>
+            </div>
+            
             <TabsContent value="question" className="flex-grow">
-              <Card className="p-4 h-[calc(100%-2rem)] bg-gray-900 border-gray-800">
+              <Card className="p-4 h-full bg-gray-900 border-gray-800">
                 <ScrollArea className="h-full">
-                  <h3 className="font-semibold mb-2 text-white">Case Study Question:</h3>
-                  <p className="text-sm text-gray-300">
-                    {result.result}
-                  </p>
+                  {voiceMode ? (
+                    <VoiceAssistant />
+                  ) : (
+                    <>
+                      <h3 className="font-semibold mb-2 text-white">Case Study Question:</h3>
+                      {result.result && result.result.split('\n').map((line, index) => (
+                        <p key={index} className="text-sm text-gray-300">
+                          {line}
+                        </p>
+                      ))}
+                    </>
+                  )}
                 </ScrollArea>
               </Card>
             </TabsContent>
+
             <TabsContent value="evaluation" className="flex-grow">
-              <Card className="p-4 h-[calc(100%-2rem)] bg-gray-900 border-gray-800">
+              <Card className="p-4 h-full bg-gray-900 border-gray-800">
                 <ScrollArea className="h-full">
                   <h3 className="font-semibold mb-2 text-white">Evaluation Results:</h3>
                   <p className="text-sm text-gray-300">
@@ -156,27 +227,6 @@ export default function MedicalQALayout() {
               </Card>
             </TabsContent>
           </Tabs>
-        </div>
-
-        {/* Horizontal Separator */}
-        <Separator className="my-1 bg-gray-800" />
-
-        {/* Lower Right - Avatar and Audio Section */}
-        <div className="h-1/2 p-6 flex flex-col items-center justify-center">
-          <div className="flex flex-col items-center space-y-4">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src="/api/placeholder/400/400" alt="AI Assistant" />
-              <AvatarFallback className="bg-gray-800 text-white">AI</AvatarFallback>
-            </Avatar>
-            <div className="relative">
-              <div className="absolute -top-1 -right-1 h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-              </div>
-              <Mic className="h-12 w-12 text-blue-400" />
-            </div>
-            <p className="text-sm text-gray-300">AI Assistant Speaking...</p>
-          </div>
         </div>
       </div>
     </div>
