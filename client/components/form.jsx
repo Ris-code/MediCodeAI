@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 // console.log(URL);
 
-const Form = ({status, output}) => {
+const Form = ({status, output, spinner}) => {
   const [formData, setFormData] = useState({
     topic: "",
     message: "",
@@ -27,6 +27,7 @@ const Form = ({status, output}) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Form Data:", formData); 
+    spinner(true)
 
     const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
@@ -44,6 +45,7 @@ const Form = ({status, output}) => {
     const response1 = await fetch(request1);
     const data = await response1.json();
     output(data);
+    spinner(false);
     status(false);
     console.log("Response:", data);
   };

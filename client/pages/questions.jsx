@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Send, Type, Play, Pause, RotateCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Toggle } from "@/components/ui/toggle";
+import Spinner from '@/components/spinner';
 import Form from '@/components/form';
+import AudioPlayer from '@/components/audio';
 
 export default function MedicalQALayout() {
   const [inputMethod, setInputMethod] = useState('text');
@@ -20,6 +22,7 @@ export default function MedicalQALayout() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [color, setColor] = useState("gray");
   const audioRef = useRef(null);
+  const [spinner, setSpinner] = useState(false);
   let t = ""
 
   // Function to play or pause the audio
@@ -32,6 +35,11 @@ export default function MedicalQALayout() {
         audioRef.current.pause();
       } else {
         console.log("play")
+
+        console.log("Audio Source:", audioRef.current.src);
+        console.log("Current Time:", audioRef.current.currentTime);
+        console.log("Duration:", audioRef.current.duration);
+
         audioRef.current.play().catch((error) => {
           console.error("Error playing audio:", error);
         });
@@ -43,6 +51,7 @@ export default function MedicalQALayout() {
   // Function to check if audio is ready
   const handleCanPlay = () => {
     console.log("Audio is ready to play");
+    console.log()
   };
 
   // Function to handle audio loading error
@@ -57,41 +66,15 @@ export default function MedicalQALayout() {
         {/* <AvatarFallback className="bg-gray-800 text-white">AI</AvatarFallback> */}
       </Avatar>
       
+      <AudioPlayer/>
 
-      {/* if(color === "gray"){
-        t = "bg-gray-800 text-white"
-      }else if(color === "blue"){
-        t = "bg-blue-600 text-white"
-      } */}
-
-      <div className="flex space-x-4">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleAudioPlayPause}
-          className= "text-white"
-        >
-          {isPlaying ? <Pause className="h-8 w-8 bg-gray-800" /> : <Play className="h-8 w-8 bg-blue-600" />}
-        </Button>
-      </div>
-      
-      <p className="text-sm text-gray-300">
-        {isPlaying ? 'Pause the audio' : 'Play the audio'}
-      </p>
-
-      {/* Audio element */}
-      <audio 
-        ref={audioRef} 
-        src="/song.mp3" 
-        onCanPlay={handleCanPlay}
-        onError={handleAudioError}
-      />
     </div>
   );
 
   return (form ? (
     <div className='mt-20'>
-      <Form status={setForm} output={setResult}/>
+      {spinner && <Spinner />}
+      <Form status={setForm} output={setResult} spinner={setSpinner}/>
     </div> 
   ) : (
     <div className="h-screen flex bg-gray-950 text-gray-100">

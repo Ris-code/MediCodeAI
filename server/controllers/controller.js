@@ -9,9 +9,18 @@ import { OpenAIFunctionsAgentOutputParser } from "langchain/agents/openai/output
 import { RunnableSequence } from "@langchain/core/runnables";
 import { Client } from "@gradio/client";
 import gTTS from 'gtts';
+import fs from 'fs';
+import path from 'path';
 import { prompttemplate, prompttemplateans } from "./promptTemplate.js"; // Imported the prompt template
 import dotenv from 'dotenv';
 dotenv.config();
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Define __dirname for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+console.log(__filename)
+const __dirname = dirname(__filename);
 
 // Methods to be executed on routes 
 const chatresponse = async (req, res) => {
@@ -80,7 +89,9 @@ const chatresponse = async (req, res) => {
         });
 
         console.log(result);
-    
+        
+        await text2speech(result.output);
+        console.log("done")
         // res.status(200).send(result.output);
         res.json({result: result.output});
         // text2speech(result.output);
@@ -105,17 +116,21 @@ const test = async (req, res) => {
 };
 
 
-const text2speech = async (req, res) => {
-    const { text } = req.body;
+const text2speech = async (text) => {
     const gtts = new gTTS(text, 'en');
-  
-    // Set appropriate headers for audio streaming
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Transfer-Encoding', 'chunked');
-  
-    // Pipe the audio stream directly to the response
-    gtts.stream().pipe(res);
+    console.log(__dirname)
+    // Define the path where the MP3 will be saved
+    const mp3FilePath = path.join(__dirname, '..', 'public', 'voice.mp3'); // Change 'output.mp3' to your desired file name
+
+    // Save the audio to the specified path
+    gtts.save(mp3FilePath, (err) => {
+        if (err) {
+            console.error('Error saving audio file:', err);
+        }
+        console.log(`Audio saved to ${mp3FilePath}`);
+    });
 };
+
 
 const llm_answer = async (question, user_answer) => {
     try {

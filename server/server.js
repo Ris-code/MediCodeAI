@@ -23,3 +23,4 @@ app.listen(PORT, (error) =>{
 console.log(router)
 app.use(express.json());
 app.use('/api', router);
+app.use(express.static('public'));
