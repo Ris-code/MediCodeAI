@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,6 +11,7 @@ import { Toggle } from "@/components/ui/toggle";
 import Spinner from '@/components/spinner';
 import Form from '@/components/form';
 import AudioPlayer from '@/components/audio';
+import EvaluationOutput from '@/components/evaluate';
 
 export default function MedicalQALayout() {
   const [inputMethod, setInputMethod] = useState('text');
@@ -23,7 +24,40 @@ export default function MedicalQALayout() {
   const [color, setColor] = useState("gray");
   const audioRef = useRef(null);
   const [spinner, setSpinner] = useState(false);
-  let t = ""
+  const [recognition, setRecognition] = useState(null);
+  const [transcript, setTranscript] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [evaluation, setEvaluation] = useState(null);
+
+  
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window) {
+        const recognitionInstance = new webkitSpeechRecognition();
+        recognitionInstance.continuous = false; // Set to true for continuous recognition
+        recognitionInstance.interimResults = false; // Set to true to receive interim results
+        recognitionInstance.lang = 'en-US'; // Set the language
+
+        // Event Handlers
+        recognitionInstance.onresult = (event) => {
+            const recognizedText = event.results[0][0].transcript;
+            console.log('Recognized Text:', recognizedText);
+            setTranscript(recognizedText);
+        };
+        
+        recognitionInstance.onerror = (event) => {
+            console.error('Speech recognition error detected: ', event.error);
+        };
+
+        recognitionInstance.onend = () => {
+            console.log('Speech recognition service disconnected');
+            // setIsListening(false);
+        };
+
+        setRecognition(recognitionInstance);
+    } else {
+        alert("Sorry, your browser doesn't support speech recognition.");
+    }
+  }, []);
 
   // Function to play or pause the audio
   const handleAudioPlayPause = () => {
@@ -71,6 +105,60 @@ export default function MedicalQALayout() {
     </div>
   );
 
+  const startListening = () => {
+    if (recognition) {
+        recognition.start();
+        // setIsListening(true);
+        console.log('Voice recognition started. Try speaking into the microphone.');
+    }
+  };
+
+  const stopListening = () => {
+      if (recognition) {
+          recognition.stop();
+          console.log('Voice recognition stopped.');
+      }
+  };
+
+  const handleSubmit = () => {
+    console.log("submitted");
+
+    let text = ""
+    if(voiceMode){
+      text = transcript
+    }else{
+      text = responseText
+    }
+    const URL = 'http://localhost:8080'
+    fetch(URL + '/api/evaluate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        question: result.result,
+        user_answer: text }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // console.log('Success:', data.data);
+        // console.log(typeof data)
+        // console.log(typeof data.data)
+
+        // const jsonres = JSON.stringify(data.data)
+        // const parsedData = JSON.parse(jsonres);
+        // console.log(typeof parsedData)
+        // console.log(typeof data)
+        // console.log(data)
+        // console.log("data:", data.data)
+        // console.log(data.data?.quantitative_scores)
+        setEvaluation(data.data);
+        console.log(typeof evaluation)
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+  };
   return (form ? (
     <div className='mt-20'>
       {spinner && <Spinner />}
@@ -117,7 +205,14 @@ export default function MedicalQALayout() {
               <Button 
                 size="lg" 
                 className={`rounded-full p-8 ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
-                onClick={() => setIsRecording(!isRecording)}
+                onClick={() => {
+                  setIsRecording(!isRecording)
+                  if(isRecording){
+                    stopListening()
+                  }else{
+                    startListening()
+                  }
+                }}
               >
                 {isRecording ? (
                   <MicOff className="h-8 w-8" />
@@ -139,7 +234,7 @@ export default function MedicalQALayout() {
           )}
           
           <div className="mt-4 flex justify-end">
-            <Button className="w-32 bg-blue-500 hover:bg-blue-600 text-white">
+            <Button className="w-32 bg-blue-500 hover:bg-blue-600 text-white" onClick={handleSubmit}>
               <Send className="mr-2 h-4 w-4" />
               Submit
             </Button>
@@ -203,9 +298,10 @@ export default function MedicalQALayout() {
               <Card className="p-4 h-full bg-gray-900 border-gray-800">
                 <ScrollArea className="h-full">
                   <h3 className="font-semibold mb-2 text-white">Evaluation Results:</h3>
-                  <p className="text-sm text-gray-300">
-                    Your evaluation results will appear here after submission...
-                  </p>
+                  {/* <p className="text-sm text-gray-300">
+                    {evaluation}
+                  </p> */}
+                  <EvaluationOutput data={evaluation}/>
                 </ScrollArea>
               </Card>
             </TabsContent>

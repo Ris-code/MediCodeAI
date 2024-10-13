@@ -16,6 +16,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { JsonOutputParser } from "@langchain/core/output_parsers";
 
 // Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -134,72 +135,212 @@ const text2speech = async (text) => {
 
 const llm_answer = async (question, user_answer) => {
     try {
-        const input = "question: " + question + " user_answer: " + user_answer;
-        // console.log(input)
+        // const input = "question: " + question + " user_answer: " + user_answer;
+        // // console.log(input)
 
-        const llm = new ChatGroq({
+        const model = new ChatGroq({
             apiKey: process.env.GROQ_API_KEY, 
         });
 
-        // Wait for tools to load before continuing
-        if (tools.length === 0) {
-            return res.status(500).send("Tools not loaded yet. Please try again later.");
-        }
+        // // Wait for tools to load before continuing
+        // if (tools.length === 0) {
+        //     return res.status(500).send("Tools not loaded yet. Please try again later.");
+        // }
 
-        // bind tools to the agent        
-        const modelWithFunctions = llm.bind({
-            functions: tools.map((tool) => convertToOpenAIFunction(tool)),
-        });
+        // // bind tools to the agent        
+        // const modelWithFunctions = llm.bind({
+        //     functions: tools.map((tool) => convertToOpenAIFunction(tool)),
+        // });
 
-        const prompt = ChatPromptTemplate.fromMessages([
-            ["system", prompttemplateans],
-            ["human",  `question: ${question} user_answer: ${user_answer}`],
-            new MessagesPlaceholder("agent_scratchpad"),
-          ])
+        // const prompt = ChatPromptTemplate.fromMessages([
+        //     ["system", prompttemplateans],
+        //     ["human",  `question: ${question} user_answer: ${user_answer}`],
+        //     new MessagesPlaceholder("agent_scratchpad"),
+        //   ])
 
-        // console.log(tools);
-        // console.log(prompt);
+        // // console.log(tools);
+        // // console.log(prompt);
 
-        const runnableAgent = RunnableSequence.from([
-            {
-              input: (i) => i.input,
-              agent_scratchpad: (i) =>
-                formatToOpenAIFunctionMessages(i.steps),
-            },
-            prompt,
-            modelWithFunctions,
-            new OpenAIFunctionsAgentOutputParser(),
-          ]);
+        // const runnableAgent = RunnableSequence.from([
+        //     {
+        //       input: (i) => i.input,
+        //       agent_scratchpad: (i) =>
+        //         formatToOpenAIFunctionMessages(i.steps),
+        //     },
+        //     prompt,
+        //     modelWithFunctions,
+        //     new OpenAIFunctionsAgentOutputParser(),
+        //   ]);
           
-          const executor = AgentExecutor.fromAgentAndTools({
-            agent: runnableAgent,
-            tools,
-          });
+        //   const executor = AgentExecutor.fromAgentAndTools({
+        //     agent: runnableAgent,
+        //     tools,
+        //   });
 
-          const result = await executor.invoke({
-            input,
-          });
+        //   const result = await executor.invoke({
+        //     input,
+        //   });
 
-          return result.output;
+        //   return result.output;
+
+        const query = `Evaluate the user's clinical case answer.
+                        Question: ${question} user_answer: ${user_answer}`;
+        const formatInstructions = `
+        Respond with a valid JSON object, containing:
+        {
+        "quantitative_scores": {
+            "clinical_accuracy": number,
+            "comprehensiveness": number,
+            "clinical_reasoning": number,
+            "overall_score": number
+        },
+        "qualitative_analysis": {
+            "strengths": [],
+            "areas_for_improvement": [],
+            "critical_discrepancies": [
+            {
+                "discrepancy": string,
+                "significance": string
+            }
+            ]
+        },
+        "performance_metrics": {
+            "grade": string,
+            "knowledge_application": string,
+            "critical_thinking": string,
+            "patient_safety": string
+        },
+        "educational_feedback": {
+            "incorrect_responses": [
+            {
+                "question": string,
+                "feedback": string
+            }
+            ],
+            "recommended_resources": [],
+            "clinical_pearls": []
+        }
+        }`;
+
+        // Set up the JSON parser
+        const parser = new JsonOutputParser();
+
+        // Create the prompt template
+        const prompt = ChatPromptTemplate.fromTemplate(`
+        Answer the user query using the format below:
+        {format_instructions}
+
+        {query}
+        `);
+
+        const partialedPrompt = await prompt.partial({
+            format_instructions: formatInstructions,
+          });
+      
+          // Pipe the prompt through the model and parse the response
+        const chain = partialedPrompt.pipe(model).pipe(parser);
+      
+          // Invoke the chain with the query
+        const evaluationResult = await chain.invoke({ query });
+      
+        console.log("Parsed Evaluation Result:", evaluationResult);
+        return evaluationResult;
+
     } catch (e) {
         console.error("Error during llm_answer execution: ", e);
         res.status(500).send("An error occurred.");
     }
 };
 
-const evaluate_answer = async (req, res) => {
+const llm_answer_new = async (question, user_answer) => {
     try {
-        // console.log("response", req.body);
-        const { question, user_answer } = req.body;
-        const evaluation_metric = await llm_answer(question, user_answer);
-
-        // Evaluate the answer
-        res.status(200).send(evaluation_metric);
+      const model = new ChatGroq({
+        apiKey: process.env.GROQ_API_KEY,
+      });
+  
+      const query = `Evaluate the user's clinical case answer.
+                    Question: ${question} user_answer: ${user_answer}`;
+  
+      const formatInstructions = `
+      Respond with a valid JSON object, containing:
+      {
+        "quantitative_scores": {
+          "clinical_accuracy": number,
+          "comprehensiveness": number,
+          "clinical_reasoning": number,
+          "overall_score": number
+        },
+        "qualitative_analysis": {
+          "strengths": [],
+          "areas_for_improvement": [],
+          "critical_discrepancies": [
+            {
+              "discrepancy": string,
+              "significance": string
+            }
+          ]
+        },
+        "performance_metrics": {
+          "grade": string,
+          "knowledge_application": string,
+          "critical_thinking": string,
+          "patient_safety": string
+        },
+        "educational_feedback": {
+          "incorrect_responses": [
+            {
+              "question": string,
+              "feedback": string
+            }
+          ],
+          "recommended_resources": [],
+          "clinical_pearls": []
+        }
+      }`;
+  
+      // Set up the JSON parser
+      const parser = new JsonOutputParser();
+  
+      // Create the prompt template
+      const prompt = ChatPromptTemplate.fromTemplate(`
+        Answer the user query using the format below:
+        {format_instructions}
+        {query}
+      `);
+  
+      const partialedPrompt = await prompt.partial({
+        format_instructions: formatInstructions,
+      });
+  
+      // Pipe the prompt through the model and parse the response
+      const chain = partialedPrompt.pipe(model).pipe(parser);
+  
+      // Invoke the chain with the query
+      const evaluationResult = await chain.invoke({ query });
+  
+      console.log(evaluationResult);
+      return evaluationResult;
     } catch (e) {
-        console.error("Error during evaluate_answer execution: ", e);
-        res.status(500).send("An error occurred.");
+      console.error("Error during llm_answer execution: ", e);
+      throw new Error("Failed to process the LLM response.");
     }
-};
+  };
+  
+  const evaluate_answer = async (req, res) => {
+    try {
+      console.log("response", req.body);
+      const { question, user_answer } = req.body;
+      const evaluation_metric = await llm_answer_new(question, user_answer);
+  
+    //   console.log("Evaluation metric:", evaluation_metric);
+      console.log(typeof evaluation_metric);
+      res.json({data: evaluation_metric});
+    } catch (e) {
+      console.error("Error during evaluate_answer execution: ", e);
+      res.status(500).send("An error occurred.");
+    }
+  };
+  
 // Export of all methods as object 
 export {
     chatresponse,

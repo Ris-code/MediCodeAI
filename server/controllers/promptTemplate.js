@@ -95,6 +95,7 @@ EVALUATION GUIDELINES:
 
 RESPONSE INSTRUCTIONS:
 Based on your evaluation, generate a JSON response with the following structure:
+Give only json response. Give no text just json only.
 1. quantitative_scores: Include numerical scores (0-100) for clinical_accuracy, comprehensiveness, clinical_reasoning, and overall_score
 2. qualitative_analysis: List strengths, areas_for_improvement, and critical_discrepancies
 3. performance_metrics: Provide grade (A+/A/B+/B/C+/C/F) and ratings (Excellent/Good/Fair/Poor) for knowledge_application, critical_thinking, and patient_safety
