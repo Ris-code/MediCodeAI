@@ -17,6 +17,7 @@ export default function MedicalQALayout() {
   const [inputMethod, setInputMethod] = useState('text');
   const [isRecording, setIsRecording] = useState(false);
   const [responseText, setResponseText] = useState('');
+  const [voiceText, setVoiceText] = useState('');
   const [form, setForm] = useState(true);
   const [result, setResult] = useState('');
   const [voiceMode, setVoiceMode] = useState(false);
@@ -40,6 +41,7 @@ export default function MedicalQALayout() {
         // Event Handlers
         recognitionInstance.onresult = (event) => {
             const recognizedText = event.results[0][0].transcript;
+            setVoiceText(voiceText + ' ' + recognizedText);
             console.log('Recognized Text:', recognizedText);
             setTranscript(recognizedText);
         };
@@ -125,7 +127,7 @@ export default function MedicalQALayout() {
 
     let text = ""
     if(voiceMode){
-      text = transcript
+      text = voiceText
     }else{
       text = responseText
     }
@@ -201,7 +203,8 @@ export default function MedicalQALayout() {
               />
             </ScrollArea>
           ) : (
-            <div className="flex-grow flex flex-col items-center justify-center space-y-4">
+            <div className="flex-grow flex-col items-center justify-center space-y-4">
+              <div className='flex flex-col items-center flex-grow space-y-4'>
               <Button 
                 size="lg" 
                 className={`rounded-full p-8 ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
@@ -223,6 +226,7 @@ export default function MedicalQALayout() {
               <p className="text-gray-300">
                 {isRecording ? 'Click to stop recording' : 'Click to start recording'}
               </p>
+              </div>
               {isRecording && (
                 <Alert variant="default" className="mt-4 bg-gray-800 border-gray-700">
                   <AlertDescription className="text-gray-200">
@@ -230,6 +234,20 @@ export default function MedicalQALayout() {
                   </AlertDescription>
                 </Alert>
               )}
+              {
+                (
+                  <div>
+                  <ScrollArea className="flex-grow">
+                    <textarea 
+                      className="w-full h-full min-h-[400px] p-4 rounded-md bg-gray-800 text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder=""
+                      value={voiceText}
+                      onChange={(e) => setVoiceText(e.target.value)}
+                    />
+                  </ScrollArea>
+                  </div>
+                )
+              }
             </div>
           )}
           
