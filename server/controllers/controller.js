@@ -105,15 +105,7 @@ const chatresponse = async (req, res) => {
 
 
 const test = async (req, res) => {
-    const client = await Client.connect("mrfakename/MeloTTS");
-    const result = await client.predict("/synthesize", { 		
-            text: "Hello!!", 		
-            speaker: "EN-US", 		
-            speed: 0.1, 		
-            language: "EN", 
-    });
-
-    console.log(result.data);
+    res.status(200).send("Hello World");
 };
 
 
