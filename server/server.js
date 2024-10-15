@@ -20,7 +20,7 @@ app.listen(PORT, (error) =>{
     else
         console.log("Error occurred, server can't start", error)
 });
-console.log(router)
+// console.log(router)
 app.use(express.json());
 app.use('/api', router);
 app.use(express.static('public'));
