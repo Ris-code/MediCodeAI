@@ -13,6 +13,8 @@ import Form from '@/components/form';
 import AudioPlayer from '@/components/audio';
 import EvaluationOutput from '@/components/evaluate';
 
+const URL = "https://medi-code-ai.vercel.app"
+
 export default function MedicalQALayout() {
   const [inputMethod, setInputMethod] = useState('text');
   const [isRecording, setIsRecording] = useState(false);
@@ -131,8 +133,9 @@ export default function MedicalQALayout() {
     }else{
       text = responseText
     }
-    const URL = 'http://localhost:8080'
-    fetch(URL + '/api/evaluate', {
+    // const URL = 'http://localhost:8080'
+    // const URL = 'https://medi-code-ai.vercel.app'
+    fetch(URL + '/evaluate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

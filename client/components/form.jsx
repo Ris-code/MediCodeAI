@@ -4,9 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import dotenv from 'dotenv';
-dotenv.config();
 // console.log(URL);
+const URL = "https://medi-code-ai.vercel.app"
 
 const Form = ({status, output, spinner}) => {
   const [formData, setFormData] = useState({
@@ -33,10 +32,10 @@ const Form = ({status, output, spinner}) => {
     myHeaders.append("Content-Type", "application/json");
 
     // const URL = process.env.URL;
-    const URL = "http://localhost:8080/api/"
+
     console.log("URL:", URL);
     console.log("formData:", JSON.stringify(formData));
-    const request1 = new Request(URL+"response", {
+    const request1 = new Request(URL+"/response", {
         method: "POST",
         body: JSON.stringify(formData),
         headers: myHeaders,

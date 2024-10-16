@@ -21,6 +21,18 @@ const ProgressBar = ({ value, label }) => (
 );
 
 const EvaluationOutput = ({ data }) => {
+  if(data == null || data == undefined || data == ""){
+    return (
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Evaluation data will be available after submission.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
   const { quantitative_scores, qualitative_analysis, performance_metrics, educational_feedback } = data;
 
   const scoreData = Object.entries(quantitative_scores).map(([key, value]) => ({

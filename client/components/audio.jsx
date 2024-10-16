@@ -2,6 +2,8 @@
 import React, { useState, useRef } from 'react';
 import { Play, Pause } from 'lucide-react';
 
+const URL = "https://medi-code-ai.vercel.app"
+
 const AudioPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
@@ -19,8 +21,8 @@ const AudioPlayer = () => {
   return (
     <div className="flex items-center justify-center p-4">
       <audio
-        ref={audioRef}
-        src="http://localhost:8080/voice.mp3"
+        ref= {audioRef}
+        src= {URL+"/voice.mp3"}
         className="hidden"
       />
       <button

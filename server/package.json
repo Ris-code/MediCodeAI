@@ -5,8 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server",
-    "dev": "nodemon server",
-    "build": "echo 'No build step required for this backend application.'"
+    "dev": "nodemon server"
   },
   "author": "Rishav Aich",
   "license": "ISC",
