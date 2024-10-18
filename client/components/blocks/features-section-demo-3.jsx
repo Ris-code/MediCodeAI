@@ -44,15 +44,9 @@ export default function FeaturesSectionDemo() {
     (<div className="relative z-20 py-10 lg:py-40 max-w-7xl mx-auto">
       <div className="px-8">
         <h4
-          className="text-3xl lg:text-5xl lg:leading-tight max-w-5xl mx-auto text-center tracking-tight font-medium text-black dark:text-white">
-          Packed with thousands of features
+          className="text-3xl lg:text-5xl lg:leading-tight max-w-5xl mx-auto text-center tracking-tight font-medium text-white dark:text-white">
+          Features
         </h4>
-
-        <p
-          className="text-sm lg:text-base  max-w-2xl  my-4 mx-auto text-neutral-500 text-center font-normal dark:text-neutral-300">
-          From Image generation to video generation, Everything AI has APIs for
-          literally everything. It can even create this website copy for you.
-        </p>
       </div>
       <div className="relative ">
         <div
@@ -111,7 +105,7 @@ export const SkeletonOne = () => {
   return (
     (<div className="relative flex py-8 px-2 gap-10 h-full">
       <div
-        className="w-full  p-5  mx-auto bg-white dark:bg-neutral-900 shadow-2xl group h-full">
+        className="w-full  p-5  mx-auto bg-white dark:bg-slate-700 shadow-2xl group h-full">
         <div className="flex flex-1 w-full h-full flex-col space-y-2  ">
           {/* TODO */}
           <Image
@@ -176,7 +170,7 @@ export const SkeletonTwo = () => {
   };
   return (
     (<div
-      className="relative flex flex-col items-start p-8 gap-10 h-full overflow-hidden">
+      className="relative flex flex-col items-start p-8 gap-10 h-full overflow-hidden border-slate-700">
       {/* TODO */}
       <div className="flex flex-row -ml-20">
         {images.map((image, idx) => (
@@ -188,7 +182,7 @@ export const SkeletonTwo = () => {
             }}
             whileHover="whileHover"
             whileTap="whileTap"
-            className="rounded-xl -mr-4 mt-4 p-1 bg-white dark:bg-neutral-800 dark:border-neutral-700 border border-neutral-100 flex-shrink-0 overflow-hidden">
+            className="rounded-xl -mr-4 mt-4 p-1 bg-white dark:bg-neutral-800 dark:border-neutral-700 border border-slate-700 flex-shrink-0 overflow-hidden">
             <Image
               src={image}
               alt="bali images"
@@ -208,7 +202,7 @@ export const SkeletonTwo = () => {
             variants={imageVariants}
             whileHover="whileHover"
             whileTap="whileTap"
-            className="rounded-xl -mr-4 mt-4 p-1 bg-white dark:bg-neutral-800 dark:border-neutral-700 border border-neutral-100 flex-shrink-0 overflow-hidden">
+            className="rounded-xl -mr-4 mt-4 p-1 bg-white dark:bg-neutral-800 dark:border-neutral-700 border border-slate-700 flex-shrink-0 overflow-hidden">
             <Image
               src={image}
               alt="bali images"
