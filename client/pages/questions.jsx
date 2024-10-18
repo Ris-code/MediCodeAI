@@ -124,15 +124,22 @@ export default function MedicalQALayout() {
       }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     console.log("submitted");
+    console.log(voiceMode)
 
-    let text = ""
-    if(voiceMode){
-      text = voiceText
-    }else{
-      text = responseText
+    const text = async () => {
+      if(inputMethod==='voice'){
+        const newtext = await voiceText
+        console.log(newtext)
+        return newtext
+      }else{
+        const newtext = responseText
+        return newtext
+      }
     }
+    const text_input = await text()
+    console.log(text_input)
     // const URL = 'http://localhost:8080'
     // const URL = 'https://medi-code-ai.vercel.app'
     fetch(URL + '/evaluate', {
@@ -142,7 +149,7 @@ export default function MedicalQALayout() {
       },
       body: JSON.stringify({ 
         question: result.result,
-        user_answer: text }),
+        user_answer: text_input }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -199,7 +206,7 @@ export default function MedicalQALayout() {
           {inputMethod === 'text' ? (
             <ScrollArea className="flex-grow">
               <textarea 
-                className="w-full h-full min-h-[400px] p-4 rounded-md bg-gray-800 text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-full min-h-[400px] p-4 rounded-md bg-gray-800 text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
                 placeholder="Write your medical case study response here..."
                 value={responseText}
                 onChange={(e) => setResponseText(e.target.value)}
@@ -242,7 +249,7 @@ export default function MedicalQALayout() {
                   <div>
                   <ScrollArea className="flex-grow">
                     <textarea 
-                      className="w-full h-full min-h-[400px] p-4 rounded-md bg-gray-800 text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full h-full min-h-[400px] p-4 rounded-md bg-gray-800 text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
                       placeholder=""
                       value={voiceText}
                       onChange={(e) => setVoiceText(e.target.value)}
@@ -305,7 +312,7 @@ export default function MedicalQALayout() {
                     <>
                       <h3 className="font-semibold mb-2 text-white">Case Study Question:</h3>
                       {result.result && result.result.split('\n').map((line, index) => (
-                        <p key={index} className="text-sm text-gray-300">
+                        <p key={index} className="text-base text-gray-300">
                           {line}
                         </p>
                       ))}
