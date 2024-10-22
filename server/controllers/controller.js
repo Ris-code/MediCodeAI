@@ -38,7 +38,9 @@ const __dirname = dirname(__filename);
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
       // Store files in 'public/uploads' directory
-      cb(null, 'public/');
+      // cb(null, 'public/');
+    const uploadPath = process.env.VERCEL ? '/tmp' : 'public/';
+    cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
       // Create unique filename with timestamp
@@ -67,7 +69,8 @@ const retriever = async (topic, message) => {
   // );
    // Check if file exists
   //  const pdfPath = 'uploaded_file.pdf';
-   const pdfPath= path.join(__dirname, '..', 'public', 'uploaded_file.pdf');
+  const pdfPath = process.env.VERCEL ? '/tmp/uploaded_file.pdf' : '/public/uploaded_file.pdf';
+  //  const pdfPath= path.join(__dirname, '..', 'public', 'uploaded_file.pdf');
   //  if (!fs.existsSync(pdfPath)) {
   //      throw new Error('PDF file not found');
   //  }
