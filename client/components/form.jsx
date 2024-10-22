@@ -56,6 +56,7 @@ const Form = ({status, output, spinner}) => {
     const request1 = new Request(URL+"/response", {
         method: "POST",
         body: formDataToSend,
+        headers: myHeaders,
     });
 
     const response1 = await fetch(request1);
