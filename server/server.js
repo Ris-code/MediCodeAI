@@ -9,7 +9,7 @@ const app = express()
 const PORT = process.env.PORT || 5000; 
 
 app.use(cors({
-    origin: 'https://medicodeai.vercel.app',
+    origin: '*',
     methods: ['GET', 'POST'],        // Specify allowed methods
     credentials: true 
 }));
