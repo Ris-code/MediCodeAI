@@ -66,7 +66,8 @@ const retriever = async (topic, message) => {
   //     "http://localhost:5000/uploads/uploaded_file.pdf"
   // );
    // Check if file exists
-   const pdfPath = 'public/uploaded_file.pdf';
+  //  const pdfPath = 'uploaded_file.pdf';
+   const pdfPath= path.join(__dirname, '..', 'public', 'uploaded_file.pdf');
   //  if (!fs.existsSync(pdfPath)) {
   //      throw new Error('PDF file not found');
   //  }
