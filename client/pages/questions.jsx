@@ -13,8 +13,8 @@ import Form from '@/components/form';
 import AudioPlayer from '@/components/audio';
 import EvaluationOutput from '@/components/evaluate';
 
-// const URL = "https://medi-code-ai.vercel.app"
-const URL = "https://localhost:5000"
+const URL = "https://medi-code-ai.vercel.app"
+// const URL = "https://localhost:5000"
 
 export default function MedicalQALayout() {
   const [inputMethod, setInputMethod] = useState('text');

@@ -5,8 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 // console.log(URL);
-// const URL = "https://medi-code-ai.vercel.app"
-const URL = "http://localhost:5000"
+const URL = "https://medi-code-ai.vercel.app"
+// const URL = "http://localhost:5000"
 
 const Form = ({status, output, spinner}) => {
   const [formData, setFormData] = useState({
