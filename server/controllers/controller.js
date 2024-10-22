@@ -23,7 +23,7 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 // Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -39,9 +39,51 @@ const s3 = new S3Client({
   }
 });
 
-// Function to upload a file to S3 (v3 syntax)
+// Function to check if the file exists in S3
+const checkFileExistsInS3 = async (fileName) => {
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: fileName,
+    });
+    await s3.send(command);
+    return true; // File exists
+  } catch (err) {
+    if (err.name === 'NotFound') {
+      return false; // File does not exist
+    }
+    console.error('Error checking if file exists:', err);
+    throw err;
+  }
+};
+
+// Function to delete a file from S3
+const deleteFileFromS3 = async (fileName) => {
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: fileName,
+    });
+    await s3.send(command);
+    console.log(`File ${fileName} deleted from S3.`);
+  } catch (err) {
+    console.error('Error deleting file from S3:', err);
+    throw err;
+  }
+};
+
+// Function to upload a file to S3
 const uploadToS3 = async (fileContent, fileName, fileType) => {
   try {
+    // Check if the file already exists
+    const fileExists = await checkFileExistsInS3(fileName);
+
+    if (fileExists) {
+      console.log(`File ${fileName} already exists. Deleting...`);
+      await deleteFileFromS3(fileName);
+    }
+
+    // Upload the new file
     const command = new PutObjectCommand({
       Bucket: process.env.S3_BUCKET_NAME, // Set your S3 bucket name in the .env file
       Key: fileName, // Name of the file to be saved in the S3 bucket
@@ -58,6 +100,7 @@ const uploadToS3 = async (fileContent, fileName, fileType) => {
     throw err;
   }
 };
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
       // Store files in 'public/uploads' directory
