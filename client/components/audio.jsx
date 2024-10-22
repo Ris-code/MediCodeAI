@@ -1,8 +1,10 @@
 
 import React, { useState, useRef } from 'react';
 import { Play, Pause } from 'lucide-react';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const URL = "https://medi-code-ai.vercel.app"
+const URL = process.env.VERCEL ? "/tmp/voice.mp3" : "https://medi-code-ai.vercel.app/voice.mp3"
 
 const AudioPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -22,7 +24,7 @@ const AudioPlayer = () => {
     <div className="flex items-center justify-center p-4">
       <audio
         ref= {audioRef}
-        src= {URL+"/voice.mp3"}
+        src= {URL}
         className="hidden"
       />
       <button

@@ -227,7 +227,7 @@ const text2speech = async (text) => {
     const gtts = new gTTS(text, 'en');
     console.log(__dirname)
     // Define the path where the MP3 will be saved
-    const mp3FilePath = path.join(__dirname, '..', 'public', 'voice.mp3'); // Change 'output.mp3' to your desired file name
+    const mp3FilePath = process.env.VERCEL ? '/tmp/voice.mp3' : path.join(__dirname, '..', 'public', 'voice.mp3'); // Change 'output.mp3' to your desired file name
 
     // Save the audio to the specified path
     gtts.save(mp3FilePath, (err) => {
