@@ -17,90 +17,207 @@ dotenv.config();
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { JsonOutputParser } from "@langchain/core/output_parsers";
+import multer from 'multer';
+import { CheerioWebBaseLoader } from "@langchain/community/document_loaders/web/cheerio";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { MemoryVectorStore } from "langchain/vectorstores/memory";
+import { OpenAIEmbeddings, ChatOpenAI } from "@langchain/openai";
+import { pull } from "langchain/hub";
+import { StringOutputParser } from "@langchain/core/output_parsers";
+import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
+import { z } from "zod";
+import { tool } from "@langchain/core/tools";
+import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
+import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 
 // Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 console.log(__filename)
 const __dirname = dirname(__filename);
 
-// Methods to be executed on routes 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+      // Store files in 'public/uploads' directory
+      cb(null, 'public/uploads/');
+  },
+  filename: function (req, file, cb) {
+      // Create unique filename with timestamp
+      // const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      // cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      cb(null, "uploaded_file.pdf");
+  }
+});
+
+// Create upload middleware
+const upload = multer({
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+      // Accept only PDF files
+      if (file.mimetype === 'application/pdf') {
+          cb(null, true);
+      } else {
+          cb(new Error('Only PDF files are allowed!'), false);
+      }
+  }
+});
+
+// const upload = multer({ storage: storage, fileFilter: fileFilter });
+// Create uploads directory if it doesn't exist
+const uploadDir = 'public/uploads';
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const retriever = async (topic, message) => {
+  // const loader = new CheerioWebBaseLoader(
+  //     "http://localhost:5000/uploads/uploaded_file.pdf"
+  // );
+   // Check if file exists
+   const pdfPath = 'public/uploads/uploaded_file.pdf';
+   if (!fs.existsSync(pdfPath)) {
+       throw new Error('PDF file not found');
+   }
+
+   // Use PDFLoader instead of CheerioWebBaseLoader
+   const loader = new PDFLoader(pdfPath, {
+       splitPages: false // Set to true if you want to split by pages
+   });
+   
+   const docs = await loader.load();
+   
+   // Check if documents were loaded
+   if (!docs || docs.length === 0) {
+       throw new Error('No content extracted from PDF');
+   }
+
+   console.log('Document loaded successfully:', docs[0].pageContent.substring(0, 100)); // Log first 100 chars
+
+  // const docs = await loader.load();
+  // console.log(docs);
+  const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+      chunkOverlap: 200,
+  });
+  const splitDocs = await splitter.splitDocuments(docs);
+  // const embeddings = new OpenAIEmbeddings({
+  //     openAIApiKey: process.env.OPENAI_API_KEY,
+  // });
+  const embeddings = new HuggingFaceInferenceEmbeddings({
+    apiKey: process.env.HUGGINGFACEHUB_API_KEY, // In Node.js defaults to process.env.HUGGINGFACEHUB_API_KEY
+  });
+
+  const vectorStore = await MemoryVectorStore.fromDocuments(
+      splitDocs,
+      embeddings
+  );
+  const retriever = vectorStore.asRetriever();
+
+  const retrieverTool = tool(
+    async ({ input }, config) => {
+      const docs = await retriever.invoke(input, config);
+      return docs.map((doc) => doc.pageContent).join("\n\n");
+    },
+    {
+      name: "user_asked_message",
+      description:
+        `Search for the required ${topic} and ${message} asked by the user`,
+      schema: z.object({
+        input: z.string(),
+      }),
+    }
+  );
+  return retrieverTool;
+}
+// Modify your chatresponse function to handle file upload
 const chatresponse = async (req, res) => {
-    try {
-        console.log(req.body)
-        const topic = req.body.topic;
-        const message = req.body.message;
-        const difficulty = req.body.difficulty;
-        // define the large language model
-        const llm = new ChatGroq({
-            apiKey: process.env.GROQ_API_KEY, 
-        });
+  try {
+      // Upload the PDF file
+      upload.single('file')(req, res, async function (err) {
+          if (err) {
+              console.error('Error uploading file:', err);
+              return res.status(400).send('Error uploading PDF. Only PDFs are allowed.');
+          }
 
-        // Wait for tools to load before continuing
-        if (tools.length === 0) {
-            return res.status(500).send("Tools not loaded yet. Please try again later.");
-        }
+          console.log(req.body);
+          const topic = req.body.topic;
+          const message = req.body.message;
+          const difficulty = req.body.difficulty;
+          const pdfFile = req.file;  // Access uploaded PDF file
 
-        // bind tools to the agent        
-        const modelWithFunctions = llm.bind({
-            functions: tools.map((tool) => convertToOpenAIFunction(tool)),
-        });
+          // Check if file is uploaded
+          if (!pdfFile) {
+              console.log("No PDF file uploaded");
+          }
 
-        // Define the agent
-        const agent_function = async () => {
-            try {
-                const prompt = ChatPromptTemplate.fromMessages([
-                    ["system", prompttemplate],
-                    ["human", "{input}"],
-                    new MessagesPlaceholder("agent_scratchpad"),
-                  ])
+          // console.log(`PDF File uploaded successfully: ${pdfFile.filename}`);
 
-                // console.log(tools);
-                // console.log(prompt);
+          // Use your existing logic after the file is uploaded
+          const llm = new ChatGroq({
+              apiKey: process.env.GROQ_API_KEY,
+          });
 
-                const runnableAgent = RunnableSequence.from([
-                    {
-                      input: (i) => i.input,
-                      agent_scratchpad: (i) =>
-                        formatToOpenAIFunctionMessages(i.steps),
-                    },
-                    prompt,
-                    modelWithFunctions,
-                    new OpenAIFunctionsAgentOutputParser(),
+          if (tools.length === 0) {
+              return res.status(500).send("Tools not loaded yet. Please try again later.");
+          }
+
+          const modelWithFunctions = llm.bind({
+              functions: tools.map((tool) => convertToOpenAIFunction(tool)),
+          });
+
+          const agent_function = async () => {
+              try {
+                  const prompt = ChatPromptTemplate.fromMessages([
+                      ["system", prompttemplate],
+                      ["human", "{input}"],
+                      new MessagesPlaceholder("agent_scratchpad"),
                   ]);
                   
+                  if(pdfFile) {
+                    const retrieverTool = await retriever(topic, message)
+                    tools.push(retrieverTool)
+                  }
+
+                  const runnableAgent = RunnableSequence.from([
+                      {
+                          input: (i) => i.input,
+                          agent_scratchpad: (i) => formatToOpenAIFunctionMessages(i.steps),
+                      },
+                      prompt,
+                      modelWithFunctions,
+                      new OpenAIFunctionsAgentOutputParser(),
+                  ]);
+
                   const executor = AgentExecutor.fromAgentAndTools({
-                    agent: runnableAgent,
-                    tools,
+                      agent: runnableAgent,
+                      tools,
                   });
 
                   return executor;
-            } catch (e) {
-                console.log("Error in agent_function:", e);
-                throw e;
-            }
-        };
-        const agent = await agent_function();
+              } catch (e) {
+                  console.log("Error in agent_function:", e);
+                  throw e;
+              }
+          };
+          const agent = await agent_function();
 
-        
-        const input = `Topics: ${topic}, Concept: ${message}, Difficulty: ${difficulty}`;
-        console.log(`Calling agent executor with query: ${input}`);
+          const input = `Topics: ${topic}, Concept: ${message}, Difficulty: ${difficulty}`;
+          console.log(`Calling agent executor with query: ${input}`);
 
-        const result = await agent.invoke({
-            input,
-        });
+          const result = await agent.invoke({
+              input,
+          });
 
-        console.log(result);
-        
-        await text2speech(result.output);
-        console.log("done")
-        // res.status(200).send(result.output);
-        res.json({result: result.output});
-        // text2speech(result.output);
+          console.log(result);
 
-    } catch (e) {
-        console.error("Error during chatresponse execution: ", e);
-        res.status(500).send("An error occurred.");
-    }
+          await text2speech(result.output);
+          console.log("done");
+
+          res.json({ result: result.output });
+      });
+  } catch (e) {
+      console.error("Error during chatresponse execution: ", e);
+      res.status(500).send("An error occurred.");
+  }
 };
 
 

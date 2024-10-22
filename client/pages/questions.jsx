@@ -13,7 +13,8 @@ import Form from '@/components/form';
 import AudioPlayer from '@/components/audio';
 import EvaluationOutput from '@/components/evaluate';
 
-const URL = "https://medi-code-ai.vercel.app"
+// const URL = "https://medi-code-ai.vercel.app"
+const URL = "https://localhost:5000"
 
 export default function MedicalQALayout() {
   const [inputMethod, setInputMethod] = useState('text');
@@ -312,7 +313,7 @@ export default function MedicalQALayout() {
                     <>
                       <h3 className="font-semibold mb-2 text-white">Case Study Question:</h3>
                       {result.result && result.result.split('\n').map((line, index) => (
-                        <p key={index} className="text-base text-gray-300">
+                        <p key={index} className="text-lg text-gray-300">
                           {line}
                         </p>
                       ))}

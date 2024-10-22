@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 // console.log(URL);
-const URL = "https://medi-code-ai.vercel.app"
+// const URL = "https://medi-code-ai.vercel.app"
+const URL = "http://localhost:5000"
 
 const Form = ({status, output, spinner}) => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,8 @@ const Form = ({status, output, spinner}) => {
     message: "",
     difficulty: "easy",  // default value for difficulty
   });
+
+  const [file, setFile] = useState(null);  
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -23,22 +26,36 @@ const Form = ({status, output, spinner}) => {
     setFormData({ ...formData, difficulty: value });
   };
 
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);  // Store the selected file in the state
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Form Data:", formData); 
     spinner(true)
 
-    const myHeaders = new Headers();
-    myHeaders.append("Content-Type", "application/json");
-
     // const URL = process.env.URL;
+    const formDataToSend = new FormData();
+    formDataToSend.append("topic", formData.topic);
+    formDataToSend.append("message", formData.message);
+    formDataToSend.append("difficulty", formData.difficulty);
+    formDataToSend.append("file", file);
+    // if (file) {
+    //   console.log(file)
+    //     // 'file' is the field name for the file in backend
+    // }
 
     console.log("URL:", URL);
-    console.log("formData:", JSON.stringify(formData));
+    console.log("formData:", JSON.stringify(formDataToSend));
+    console.log("formData:", formDataToSend);
+
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "multipart/form-data");
+
     const request1 = new Request(URL+"/response", {
         method: "POST",
-        body: JSON.stringify(formData),
-        headers: myHeaders,
+        body: formDataToSend,
     });
 
     const response1 = await fetch(request1);
@@ -81,6 +98,19 @@ const Form = ({status, output, spinner}) => {
             value={formData.message}
             onChange={handleInputChange}
             className="mt-1 bg-gray-800 text-white placeholder-gray-400"
+          />
+        </div>
+
+        <div className="mb-6">
+          <Label htmlFor="message" className="text-gray-200">
+            Upload Resource (.pdf)
+          </Label>
+          <Input 
+            id="resource" 
+            type="file" 
+            accept=".pdf"
+            onChange = {handleFileChange}
+            className="mt-1 bg-gray-800 text-white placeholder-white-400"
           />
         </div>
 
