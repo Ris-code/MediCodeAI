@@ -4,7 +4,7 @@ import { Play, Pause } from 'lucide-react';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const URL = process.env.VERCEL ? "/tmp/voice.mp3" : "https://medi-code-ai.vercel.app/voice.mp3"
+const URL = "https://datavisproject.s3.us-east-1.amazonaws.com/voice.mp3"
 
 const AudioPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);

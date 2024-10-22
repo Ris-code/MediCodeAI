@@ -1,51 +1,71 @@
 // Import statements
 import { ChatGroq } from "@langchain/groq";
 import tools from './tool.js';
-import { ChatPromptTemplate, PromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { AgentExecutor } from "langchain/agents";
 import { convertToOpenAIFunction } from "@langchain/core/utils/function_calling";
 import { formatToOpenAIFunctionMessages } from "langchain/agents/format_scratchpad";
 import { OpenAIFunctionsAgentOutputParser } from "langchain/agents/openai/output_parser";
 import { RunnableSequence } from "@langchain/core/runnables";
-import { Client } from "@gradio/client";
 import gTTS from 'gtts';
 import fs from 'fs';
 import path from 'path';
-import { prompttemplate, prompttemplateans } from "./promptTemplate.js"; // Imported the prompt template
+import { prompttemplate } from "./promptTemplate.js"; // Imported the prompt template
 import dotenv from 'dotenv';
 dotenv.config();
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { JsonOutputParser } from "@langchain/core/output_parsers";
 import multer from 'multer';
-import { CheerioWebBaseLoader } from "@langchain/community/document_loaders/web/cheerio";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
-import { OpenAIEmbeddings, ChatOpenAI } from "@langchain/openai";
-import { pull } from "langchain/hub";
-import { StringOutputParser } from "@langchain/core/output_parsers";
-import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 // Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 console.log(__filename)
 const __dirname = dirname(__filename);
 
+// Initialize S3 client
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  }
+});
+
+// Function to upload a file to S3 (v3 syntax)
+const uploadToS3 = async (fileContent, fileName, fileType) => {
+  try {
+    const command = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME, // Set your S3 bucket name in the .env file
+      Key: fileName, // Name of the file to be saved in the S3 bucket
+      Body: fileContent, // File content buffer
+      ContentType: fileType, // MIME type (e.g., application/pdf)
+      ACL: 'public-read', // Optional: Make the file publicly accessible
+    });
+
+    const data = await s3.send(command);
+    console.log(`File uploaded successfully. S3 data:`, data);
+    return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`; // Public URL of the uploaded file
+  } catch (err) {
+    console.error("Error uploading file to S3:", err);
+    throw err;
+  }
+};
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
       // Store files in 'public/uploads' directory
-      // cb(null, 'public/');
     const uploadPath = process.env.VERCEL ? '/tmp' : 'public/';
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
       // Create unique filename with timestamp
-      // const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      // cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
       cb(null, "uploaded_file.pdf");
   }
 });
@@ -64,19 +84,9 @@ const upload = multer({
 });
 
 const retriever = async (topic, message) => {
-  // const loader = new CheerioWebBaseLoader(
-  //     "http://localhost:5000/uploads/uploaded_file.pdf"
-  // );
-   // Check if file exists
-  //  const pdfPath = 'uploaded_file.pdf';
-  const pdfPath = process.env.VERCEL ? '/tmp/uploaded_file.pdf' : '/public/uploaded_file.pdf';
-  //  const pdfPath= path.join(__dirname, '..', 'public', 'uploaded_file.pdf');
-  //  if (!fs.existsSync(pdfPath)) {
-  //      throw new Error('PDF file not found');
-  //  }
+  const pdfPath = process.env.VERCEL ? '/tmp/uploaded_file.pdf' : 'public/uploaded_file.pdf';
 
-   // Use PDFLoader instead of CheerioWebBaseLoader
-   const loader = new PDFLoader(pdfPath, {
+  const loader = new PDFLoader(pdfPath, {
        splitPages: false // Set to true if you want to split by pages
    });
    
@@ -96,9 +106,7 @@ const retriever = async (topic, message) => {
       chunkOverlap: 200,
   });
   const splitDocs = await splitter.splitDocuments(docs);
-  // const embeddings = new OpenAIEmbeddings({
-  //     openAIApiKey: process.env.OPENAI_API_KEY,
-  // });
+
   const embeddings = new HuggingFaceInferenceEmbeddings({
     apiKey: process.env.HUGGINGFACEHUB_API_KEY, // In Node.js defaults to process.env.HUGGINGFACEHUB_API_KEY
   });
@@ -128,92 +136,84 @@ const retriever = async (topic, message) => {
 // Modify your chatresponse function to handle file upload
 const chatresponse = async (req, res) => {
   try {
-      // Upload the PDF file
-      upload.single('file')(req, res, async function (err) {
-          if (err) {
-              console.error('Error uploading file:', err);
-              return res.status(400).send('Error uploading PDF. Only PDFs are allowed.');
-          }
+    // Upload the PDF file
+    upload.single('file')(req, res, async function (err) {
+      if (err) {
+        console.error('Error uploading file:', err);
+        return res.status(400).send('Error uploading PDF. Only PDFs are allowed.');
+      }
 
-          console.log(req.body);
-          const topic = req.body.topic;
-          const message = req.body.message;
-          const difficulty = req.body.difficulty;
-          const pdfFile = req.file;  // Access uploaded PDF file
+      const topic = req.body.topic;
+      const message = req.body.message;
+      const difficulty = req.body.difficulty;
+      const pdfFile = req.file;  // Access uploaded PDF file
 
-          // Check if file is uploaded
-          if (!pdfFile) {
-              console.log("No PDF file uploaded");
-          }
+      // Check if file is uploaded
+      if (pdfFile) {
+        const retrieverTool = await retriever(topic, message);
+        tools.push(retrieverTool);
+      } else {
+        console.log("No PDF file uploaded");
+      }
 
-          // console.log(`PDF File uploaded successfully: ${pdfFile.filename}`);
-
-          // Use your existing logic after the file is uploaded
-          const llm = new ChatGroq({
-              apiKey: process.env.GROQ_API_KEY,
-          });
-
-          if (tools.length === 0) {
-              return res.status(500).send("Tools not loaded yet. Please try again later.");
-          }
-
-          const modelWithFunctions = llm.bind({
-              functions: tools.map((tool) => convertToOpenAIFunction(tool)),
-          });
-
-          const agent_function = async () => {
-              try {
-                  const prompt = ChatPromptTemplate.fromMessages([
-                      ["system", prompttemplate],
-                      ["human", "{input}"],
-                      new MessagesPlaceholder("agent_scratchpad"),
-                  ]);
-                  
-                  if(pdfFile) {
-                    const retrieverTool = await retriever(topic, message)
-                    tools.push(retrieverTool)
-                  }
-
-                  const runnableAgent = RunnableSequence.from([
-                      {
-                          input: (i) => i.input,
-                          agent_scratchpad: (i) => formatToOpenAIFunctionMessages(i.steps),
-                      },
-                      prompt,
-                      modelWithFunctions,
-                      new OpenAIFunctionsAgentOutputParser(),
-                  ]);
-
-                  const executor = AgentExecutor.fromAgentAndTools({
-                      agent: runnableAgent,
-                      tools,
-                  });
-
-                  return executor;
-              } catch (e) {
-                  console.log("Error in agent_function:", e);
-                  throw e;
-              }
-          };
-          const agent = await agent_function();
-
-          const input = `Topics: ${topic}, Concept: ${message}, Difficulty: ${difficulty}`;
-          console.log(`Calling agent executor with query: ${input}`);
-
-          const result = await agent.invoke({
-              input,
-          });
-
-          console.log(result);
-
-          await text2speech(result.output);
-          console.log("done");
-
-          res.json({ result: result.output });
+      // Existing logic for handling LLM operations continues here...
+      const llm = new ChatGroq({
+        apiKey: process.env.GROQ_API_KEY,
       });
+
+      if (tools.length === 0) {
+        return res.status(500).send("Tools not loaded yet. Please try again later.");
+      }
+
+      const modelWithFunctions = llm.bind({
+        functions: tools.map((tool) => convertToOpenAIFunction(tool)),
+      });
+
+      const agent_function = async () => {
+        try {
+          const prompt = ChatPromptTemplate.fromMessages([
+            ["system", prompttemplate],
+            ["human", "{input}"],
+            new MessagesPlaceholder("agent_scratchpad"),
+          ]);
+
+          const runnableAgent = RunnableSequence.from([
+            {
+              input: (i) => i.input,
+              agent_scratchpad: (i) => formatToOpenAIFunctionMessages(i.steps),
+            },
+            prompt,
+            modelWithFunctions,
+            new OpenAIFunctionsAgentOutputParser(),
+          ]);
+
+          const executor = AgentExecutor.fromAgentAndTools({
+            agent: runnableAgent,
+            tools,
+          });
+
+          return executor;
+        } catch (e) {
+          console.log("Error in agent_function:", e);
+          throw e;
+        }
+      };
+
+      const agent = await agent_function();
+      const input = `Topics: ${topic}, Concept: ${message}, Difficulty: ${difficulty}`;
+      console.log(`Calling agent executor with query: ${input}`);
+      const result = await agent.invoke({ input });
+      console.log(result);
+
+      // Call text-to-speech conversion
+      await text2speech(result.output);
+      console.log("done");
+
+      res.json({ result: result.output });
+    });
   } catch (e) {
-      console.error("Error during chatresponse execution: ", e);
-      res.status(500).send("An error occurred.");
+    console.error("Error during chatresponse execution: ", e);
+    res.status(500).send("An error occurred.");
   }
 };
 
@@ -224,70 +224,37 @@ const test = async (req, res) => {
 
 
 const text2speech = async (text) => {
-    const gtts = new gTTS(text, 'en');
-    console.log(__dirname)
-    // Define the path where the MP3 will be saved
-    const mp3FilePath = process.env.VERCEL ? '/tmp/voice.mp3' : path.join(__dirname, '..', 'public', 'voice.mp3'); // Change 'output.mp3' to your desired file name
+  const gtts = new gTTS(text, 'en');
+  const mp3FilePath = process.env.VERCEL ? '/tmp/voice.mp3' : path.join(__dirname, '..', 'public', 'voice.mp3'); // Change 'output.mp3' to your desired file name
 
-    // Save the audio to the specified path
-    gtts.save(mp3FilePath, (err) => {
-        if (err) {
-            console.error('Error saving audio file:', err);
-        }
-        console.log(`Audio saved to ${mp3FilePath}`);
-    });
+  // Save the audio locally before upload
+  gtts.save(mp3FilePath, async (err) => {
+    if (err) {
+      console.error('Error saving audio file:', err);
+      return;
+    }
+    console.log(`Audio saved to ${mp3FilePath}`);
+
+    // Upload the audio file to S3
+    const mp3FileBuffer = fs.readFileSync(mp3FilePath);
+    const audioFileName = 'voice.mp3';
+    
+    try {
+      const audioFileUrl = await uploadToS3(mp3FileBuffer, audioFileName, 'audio/mpeg');
+      console.log(`Audio uploaded successfully. URL: ${audioFileUrl}`);
+    } catch (err) {
+      console.error('Error uploading audio to S3:', err);
+    }
+  });
 };
 
 
 const llm_answer = async (question, user_answer) => {
     try {
-        // const input = "question: " + question + " user_answer: " + user_answer;
-        // // console.log(input)
 
         const model = new ChatGroq({
             apiKey: process.env.GROQ_API_KEY, 
         });
-
-        // // Wait for tools to load before continuing
-        // if (tools.length === 0) {
-        //     return res.status(500).send("Tools not loaded yet. Please try again later.");
-        // }
-
-        // // bind tools to the agent        
-        // const modelWithFunctions = llm.bind({
-        //     functions: tools.map((tool) => convertToOpenAIFunction(tool)),
-        // });
-
-        // const prompt = ChatPromptTemplate.fromMessages([
-        //     ["system", prompttemplateans],
-        //     ["human",  `question: ${question} user_answer: ${user_answer}`],
-        //     new MessagesPlaceholder("agent_scratchpad"),
-        //   ])
-
-        // // console.log(tools);
-        // // console.log(prompt);
-
-        // const runnableAgent = RunnableSequence.from([
-        //     {
-        //       input: (i) => i.input,
-        //       agent_scratchpad: (i) =>
-        //         formatToOpenAIFunctionMessages(i.steps),
-        //     },
-        //     prompt,
-        //     modelWithFunctions,
-        //     new OpenAIFunctionsAgentOutputParser(),
-        //   ]);
-          
-        //   const executor = AgentExecutor.fromAgentAndTools({
-        //     agent: runnableAgent,
-        //     tools,
-        //   });
-
-        //   const result = await executor.invoke({
-        //     input,
-        //   });
-
-        //   return result.output;
 
         const query = `Evaluate the user's clinical case answer.
                         Question: ${question} user_answer: ${user_answer}`;
