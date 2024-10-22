@@ -38,7 +38,7 @@ const __dirname = dirname(__filename);
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
       // Store files in 'public/uploads' directory
-      cb(null, 'public/uploads/');
+      cb(null, 'public/');
   },
   filename: function (req, file, cb) {
       // Create unique filename with timestamp
@@ -61,22 +61,15 @@ const upload = multer({
   }
 });
 
-// const upload = multer({ storage: storage, fileFilter: fileFilter });
-// Create uploads directory if it doesn't exist
-const uploadDir = 'public/uploads';
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
 const retriever = async (topic, message) => {
   // const loader = new CheerioWebBaseLoader(
   //     "http://localhost:5000/uploads/uploaded_file.pdf"
   // );
    // Check if file exists
-   const pdfPath = 'public/uploads/uploaded_file.pdf';
-   if (!fs.existsSync(pdfPath)) {
-       throw new Error('PDF file not found');
-   }
+   const pdfPath = 'public/uploaded_file.pdf';
+  //  if (!fs.existsSync(pdfPath)) {
+  //      throw new Error('PDF file not found');
+  //  }
 
    // Use PDFLoader instead of CheerioWebBaseLoader
    const loader = new PDFLoader(pdfPath, {

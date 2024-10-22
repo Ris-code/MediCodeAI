@@ -12,7 +12,7 @@ const Form = ({status, output, spinner}) => {
   const [formData, setFormData] = useState({
     topic: "",
     message: "",
-    difficulty: "easy",  // default value for difficulty
+    difficulty: "Beginner",  // default value for difficulty
   });
 
   const [file, setFile] = useState(null);  
@@ -56,7 +56,6 @@ const Form = ({status, output, spinner}) => {
     const request1 = new Request(URL+"/response", {
         method: "POST",
         body: formDataToSend,
-        headers: myHeaders,
     });
 
     const response1 = await fetch(request1);
