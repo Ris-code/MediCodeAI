@@ -32,6 +32,7 @@ export default function MedicalQALayout() {
   const [transcript, setTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [evaluation, setEvaluation] = useState(null);
+  const [activeTab, setActiveTab] = useState("question");
 
   
   useEffect(() => {
@@ -166,7 +167,7 @@ export default function MedicalQALayout() {
         // console.log("data:", data.data)
         // console.log(data.data?.quantitative_scores)
         setEvaluation(data.data);
-        console.log(typeof evaluation)
+        setActiveTab("evaluation");
       })
       .catch((error) => {
         console.error('Error:', error);
@@ -277,7 +278,7 @@ export default function MedicalQALayout() {
       {/* Right Section */}
       <div className="w-1/2 flex flex-col">
         <div className="h-full p-6">
-          <Tabs defaultValue="question" className="h-full flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <TabsList className="grid w-2/3 grid-cols-2 bg-gray-800">
                 <TabsTrigger 
