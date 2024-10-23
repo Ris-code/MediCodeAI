@@ -265,49 +265,6 @@ const test = async (req, res) => {
     res.status(200).send("Hello World");
 };
 
-
-// const text2speech = async (text) => {
-//   const gtts = new gTTS(text, 'en');
-//   const mp3FilePath = process.env.VERCEL ? '/tmp/voice.mp3' : path.join(__dirname, '..', 'public', 'voice.mp3'); // Save to /tmp on Vercel
-
-//   console.log(`Saving audio to: ${mp3FilePath}`);
-
-//   // Save the audio locally before upload
-//   gtts.save(mp3FilePath, async (err) => {
-//     if (err) {
-//       console.error('Error saving audio file:', err);
-//       return;
-//     }
-    
-//     console.log(`Audio saved to ${mp3FilePath}`);
-
-//     // Check if the file exists at the specified path (on Vercel)
-//     if (!fs.existsSync(mp3FilePath)) {
-//       console.error(`File was not created at ${mp3FilePath}`);
-//       return;
-//     }
-
-//     // Upload the audio file to S3
-//     const mp3FileBuffer = fs.readFileSync(mp3FilePath);
-//     const audioFileName = 'voice.mp3';
-    
-//     try {
-//       const audioFileUrl = await uploadToS3(mp3FileBuffer, audioFileName, 'audio/mpeg');
-//       console.log(`Audio uploaded successfully. URL: ${audioFileUrl}`);
-//     } catch (err) {
-//       console.error('Error uploading audio to S3:', err);
-//     }
-
-//     // Clean up: Optionally delete the file after uploading (to save space)
-//     fs.unlink(mp3FilePath, (err) => {
-//       if (err) {
-//         console.error(`Error deleting local file: ${mp3FilePath}`, err);
-//       } else {
-//         console.log(`Local file deleted: ${mp3FilePath}`);
-//       }
-//     });
-//   });
-// };
 const text2speech = async (text) => {
   return new Promise((resolve, reject) => {
     try {
