@@ -266,49 +266,103 @@ const test = async (req, res) => {
 };
 
 
+// const text2speech = async (text) => {
+//   const gtts = new gTTS(text, 'en');
+//   const mp3FilePath = process.env.VERCEL ? '/tmp/voice.mp3' : path.join(__dirname, '..', 'public', 'voice.mp3'); // Save to /tmp on Vercel
+
+//   console.log(`Saving audio to: ${mp3FilePath}`);
+
+//   // Save the audio locally before upload
+//   gtts.save(mp3FilePath, async (err) => {
+//     if (err) {
+//       console.error('Error saving audio file:', err);
+//       return;
+//     }
+    
+//     console.log(`Audio saved to ${mp3FilePath}`);
+
+//     // Check if the file exists at the specified path (on Vercel)
+//     if (!fs.existsSync(mp3FilePath)) {
+//       console.error(`File was not created at ${mp3FilePath}`);
+//       return;
+//     }
+
+//     // Upload the audio file to S3
+//     const mp3FileBuffer = fs.readFileSync(mp3FilePath);
+//     const audioFileName = 'voice.mp3';
+    
+//     try {
+//       const audioFileUrl = await uploadToS3(mp3FileBuffer, audioFileName, 'audio/mpeg');
+//       console.log(`Audio uploaded successfully. URL: ${audioFileUrl}`);
+//     } catch (err) {
+//       console.error('Error uploading audio to S3:', err);
+//     }
+
+//     // Clean up: Optionally delete the file after uploading (to save space)
+//     fs.unlink(mp3FilePath, (err) => {
+//       if (err) {
+//         console.error(`Error deleting local file: ${mp3FilePath}`, err);
+//       } else {
+//         console.log(`Local file deleted: ${mp3FilePath}`);
+//       }
+//     });
+//   });
+// };
 const text2speech = async (text) => {
-  const gtts = new gTTS(text, 'en');
-  const mp3FilePath = process.env.VERCEL ? '/tmp/voice.mp3' : path.join(__dirname, '..', 'public', 'voice.mp3'); // Save to /tmp on Vercel
-
-  console.log(`Saving audio to: ${mp3FilePath}`);
-
-  // Save the audio locally before upload
-  gtts.save(mp3FilePath, async (err) => {
-    if (err) {
-      console.error('Error saving audio file:', err);
-      return;
-    }
-    
-    console.log(`Audio saved to ${mp3FilePath}`);
-
-    // Check if the file exists at the specified path (on Vercel)
-    if (!fs.existsSync(mp3FilePath)) {
-      console.error(`File was not created at ${mp3FilePath}`);
-      return;
-    }
-
-    // Upload the audio file to S3
-    const mp3FileBuffer = fs.readFileSync(mp3FilePath);
-    const audioFileName = 'voice.mp3';
-    
+  return new Promise((resolve, reject) => {
     try {
-      const audioFileUrl = await uploadToS3(mp3FileBuffer, audioFileName, 'audio/mpeg');
-      console.log(`Audio uploaded successfully. URL: ${audioFileUrl}`);
-    } catch (err) {
-      console.error('Error uploading audio to S3:', err);
-    }
+      // Initialize gTTS
+      const gtts = new gTTS(text, 'en');
+      
+      // Always use /tmp for Vercel
+      const mp3FilePath = process.env.VERCEL ? '/tmp/voice.mp3' : 'public/voice.mp3';
+      console.log(`Attempting to save audio to: ${mp3FilePath}`);
 
-    // Clean up: Optionally delete the file after uploading (to save space)
-    fs.unlink(mp3FilePath, (err) => {
-      if (err) {
-        console.error(`Error deleting local file: ${mp3FilePath}`, err);
-      } else {
-        console.log(`Local file deleted: ${mp3FilePath}`);
-      }
-    });
+      // Create the file using a write stream
+      const writeStream = fs.createWriteStream(mp3FilePath);
+      
+      // Handle stream events
+      writeStream.on('finish', async () => {
+        console.log('Write stream finished');
+        
+        try {
+          // Verify file exists and has content
+          const stats = fs.statSync(mp3FilePath);
+          console.log(`File created with size: ${stats.size} bytes`);
+
+          // Read the file as buffer
+          const mp3FileBuffer = fs.readFileSync(mp3FilePath);
+          const audioFileName = `voice.mp3`; // Add timestamp to prevent conflicts
+          
+          // Upload to S3
+          const audioFileUrl = await uploadToS3(mp3FileBuffer, audioFileName, 'audio/mpeg');
+          console.log(`Audio uploaded successfully. URL: ${audioFileUrl}`);
+
+          // Cleanup
+          fs.unlinkSync(mp3FilePath);
+          console.log('Local file cleaned up');
+          
+          resolve(audioFileUrl);
+        } catch (err) {
+          console.error('Error in file processing:', err);
+          reject(err);
+        }
+      });
+
+      writeStream.on('error', (err) => {
+        console.error('Write stream error:', err);
+        reject(err);
+      });
+
+      // Save directly to the write stream
+      gtts.stream().pipe(writeStream);
+
+    } catch (err) {
+      console.error('Error in text2speech:', err);
+      reject(err);
+    }
   });
 };
-
 
 const llm_answer = async (question, user_answer) => {
     try {
